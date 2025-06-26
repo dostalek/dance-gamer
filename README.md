@@ -65,7 +65,7 @@ pip install -r requirements.txt
    - entering the dance game sigil
    - selecting the dance game level
 2. Avoid keyboard and mouse inputs during runtime
-3. Press "[" to exit the script at any time (not yet implemented)
+3. Press the "[" key to exit the program at any time (not yet implemented)
 
 ## Usage
 

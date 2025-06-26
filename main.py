@@ -71,7 +71,7 @@ def wait_for_match_click(sct, monitor, template, confidence=0.8, timeout_seconds
     """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default."""
     x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds)
     screen_x, screen_y = client_to_screen(x, y, monitor)
-    click(screen_x, screen_y, 0.1)
+    click(screen_x, screen_y, 0.2)
 
 
 def client_to_screen(x, y, monitor):
@@ -87,14 +87,14 @@ if __name__ == "__main__":
 
     parser.add_argument("-n", "--number", dest="number_games", type=int, required=True)
     parser.add_argument(
-        "-t", "--truncate", dest="truncate_matches", type=int, required=True
+        "-t", "--truncate", default=5, dest="truncate_sequences", type=int
     )
-    parser.add_argument("-s", "--snack", dest="snack_pos", type=int, required=True)
+    parser.add_argument("-s", "--snack", default=1, dest="snack_pos", type=int)
 
     # TODO: add further arg validation
     #  number_games >= 1
     #  1 <= snack_pos <= 5
-    #  2 <= truncate_matches <= 4
+    #  2 <= truncate_sequences <= 4
     args = parser.parse_args()
 
     # Handle display scale
@@ -162,8 +162,8 @@ if __name__ == "__main__":
             wait_for_match_click(sct, monitor, gui_templates["wizard_city"])
             wait_for_match_click(sct, monitor, gui_templates["play"])
             # Move cursor to top left corner of client so that it doesn't obfuscate GUI
-            # objects
-            # win32api.SetCursorPos((monitor["left"], monitor["top"]))
+            # elements
+            win32api.SetCursorPos((monitor["left"], monitor["top"]))
             is_first_loop = False
 
         # Screenshot image as numpy array
@@ -183,25 +183,27 @@ if __name__ == "__main__":
                 # Wait for input display to finish
                 sleep(1)
                 sequence.clear()
-            if current_sequence_len - 3 == args.truncate_matches:
+            if current_sequence_len - 3 == args.truncate_sequences:
+                # TODO: hold arrow until rest of game is failed
                 # Post-game sequence
-                games_played += 1
-                if games_played == args.number_games:
-                    # Desired number of games played reached
-                    print("Dancing complete, exitting program.")
-                    sys.exit(0)
-
                 current_sequence_len = 3
                 is_first_loop = True
 
                 wait_for_match_click(sct, monitor, gui_templates["next"])
 
-                snack_x, snack_y = snack_positions[args.snack_pos]
+                # 1 index the list for user input
+                snack_x, snack_y = snack_positions[args.snack_pos - 1]
                 click(snack_x, snack_y, 0.1)
 
                 wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
                 # TODO: paths diverge here, needs separate functionality if user does not want to feed pet
                 # TODO: handle case where pet levels up
                 wait_for_match_click(sct, monitor, gui_templates["play_again"])
+
+                games_played += 1
+                if games_played == args.number_games:
+                    # Desired number of games played reached
+                    print("Dancing complete, exitting program.")
+                    sys.exit(0)
 
             sleep(0.5)

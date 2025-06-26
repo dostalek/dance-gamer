@@ -1,15 +1,25 @@
 import argparse
 import cv2
 from ctypes import windll
+import keyboard
 import mss
 import numpy as np
+import os
 from PIL import Image
 import pyautogui
 import sys
+import threading
 from time import sleep
 import win32api, win32con, win32gui
 
 RESOURCES_DIR = "resources"
+EXIT_KEY = "["
+
+
+def listener():
+    keyboard.wait(EXIT_KEY)
+    print("Exit key pressed. Exitting program.")
+    os._exit(0)
 
 
 def screenshot_np(sct, monitor):
@@ -42,10 +52,8 @@ def click(x, y, delay=0):
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
 
-def wait_for_match(
-    sct, monitor, template, confidence=0.8, timeout_seconds=15, callback=None
-):
-    """Blocks until a match between image and template at confidence is found, and returns its center. Timeout after 15 seconds by default. Optional callback to be called while waiting."""
+def wait_for_match(sct, monitor, template, confidence=0.8, timeout_seconds=15):
+    """Blocks until a match between image and template at confidence is found, and returns its center. Timeout after 15 seconds by default."""
     # Slight delay so CPU doesn't explode
     delay = 0.1
     num_checks = timeout_seconds / delay
@@ -61,24 +69,50 @@ def wait_for_match(
             center_x = w // 2 + x
             center_y = h // 2 + y
             return center_x, center_y
-        # Do something while waiting
-        if callback:
-            callback()
         sleep(delay)
         num_checks -= 1
         if num_checks <= 0:
             # Match timeout reached
-            print("Error navigating GUI, exitting program.")
-            sys.exit(1)
+            # print("Error navigating GUI. Exitting program.")
+            # sys.exit(1)
+            pass
 
 
-def wait_for_match_click(
-    sct, monitor, template, confidence=0.8, timeout_seconds=15, callback=None
-):
-    """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default. Optional callback to be called while waiting."""
-    x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds, callback)
+def wait_for_match_click(sct, monitor, template, confidence=0.8, timeout_seconds=15):
+    """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default."""
+    x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds)
     screen_x, screen_y = client_to_screen(x, y, monitor)
-    click(screen_x, screen_y, 0.2)
+    click(screen_x, screen_y, 0.3)
+
+
+def wait_for_matches_click(
+    sct, monitor, templates, confidence=0.8, timeout_seconds=15, callback=None
+):
+    """Blocks until a match is found between image and one of the provided templates, clicks it, and returns the template name of the match."""
+    delay = 0.1
+    num_checks = timeout_seconds / delay
+
+    while True:
+        for template_name, template_img in templates.items():
+            img_np = screenshot_np(sct, monitor)
+            res = cv2.matchTemplate(img_np, template_img, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(res)
+            if max_val > confidence:
+                x, y = max_loc
+                w, h = template_img.shape[::-1]
+                center_x = w // 2 + x
+                center_y = h // 2 + y
+                screen_x, screen_y = client_to_screen(center_x, center_y, monitor)
+                click(screen_x, screen_y, 0.3)
+                return template_name
+        if callback:
+            callback()
+        sleep(delay)
+        if num_checks <= 0:
+            # Match timeout reached
+            # print("Error navigating GUI, exitting program.")
+            # sys.exit(1)
+            pass
 
 
 def client_to_screen(x, y, monitor):
@@ -125,6 +159,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Listen for exit key
+    listener_thread = threading.Thread(target=listener, daemon=True)
+    listener_thread.start()
+
     # Handle display scale
     user32 = windll.user32
     user32.SetProcessDPIAware()
@@ -163,6 +201,7 @@ if __name__ == "__main__":
         "dance_game": cv2.imread(
             f"{RESOURCES_DIR}/dance_game.png", cv2.IMREAD_GRAYSCALE
         ),
+        "ecks": cv2.imread(f"{RESOURCES_DIR}/ecks.png", cv2.IMREAD_GRAYSCALE),
     }
 
     snack_position_offsets = [
@@ -215,26 +254,37 @@ if __name__ == "__main__":
                 sleep(1)
                 sequence.clear()
             if current_sequence_len - 3 == args.truncate_sequences:
-                # TODO: hold arrow until rest of game is failed
                 # Post-game sequence
                 current_sequence_len = 3
                 is_first_loop = True
 
                 # Callback function here spams up arrow until "Next" button is visible
-                wait_for_match_click(
+                res = wait_for_matches_click(
                     sct,
                     monitor,
-                    gui_templates["next"],
+                    {key: gui_templates[key] for key in ["next", "ecks"]},
                     timeout_seconds=30,
                     callback=lambda: pyautogui.press("up"),
                 )
 
-                # 1 index list for user input
+                if res == "ecks":
+                    wait_for_match_click(
+                        sct,
+                        monitor,
+                        gui_templates["next"],
+                    )
+
                 snack_pos = args.snack_pos
                 if snack_pos:
+                    # 1 index list for user input
                     snack_x, snack_y = snack_positions[args.snack_pos - 1]
                     click(snack_x, snack_y, 0.1)
                     wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
+                    # Short check for pet level up on feed snack
+                    if res == "next":
+                        wait_for_match_click(
+                            sct, monitor, gui_templates["ecks"], timeout_seconds=1
+                        )
                     wait_for_match_click(sct, monitor, gui_templates["play_again"])
                 else:
                     # Not feeding pet requires dance game menu be reopened with "X"
@@ -242,7 +292,6 @@ if __name__ == "__main__":
                     wait_for_match(sct, monitor, gui_templates["dance_game"])
                     pyautogui.press("x")
 
-                # TODO: handle case where pet levels up
                 games_played += 1
                 if games_played == args.number_games:
                     # Desired number of games played reached

@@ -1,4 +1,4 @@
-# Wizard101 Pet Dance Gamer (WIP)
+# Wizard101 Auto Pet Dance Game (WIP)
 
 A Python script that plays the Wizard101 pet dance game for you using computer vision and automated input.
 
@@ -51,6 +51,22 @@ cd path/to/your/dance-gamer-main
 pip install -r requirements.txt
 ```
 
+## Setup Instructions
+
+### Game Settings
+
+1. Fullscreen -> OFF
+2. Resolution -> 800x600
+3. UI Size -> REGULAR
+
+### Pet Dance Game
+
+1. Run the script before:
+   - entering the dance game sigil
+   - selecting the dance game level
+2. Avoid keyboard and mouse inputs during runtime
+3. Press "[" to exit the script at any time (not yet implemented)
+
 ## Usage
 
 ```bash
@@ -60,8 +76,8 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 ### Arguments
 
 - `-n, --number`: **(Required)** Number of games to play.
-- `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5.
-- `-s, --snack`: (Optional) Snack position to select. Defaults to no snack.
+- `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5. (not yet implemented)
+- `-s, --snack`: (Optional) Snack position to select. Defaults to no snack. (not yet implemented)
 
 ### Example
 

@@ -1,6 +1,6 @@
 # Wizard101 Auto Pet Dance Game (WIP)
 
-A Python script that plays the Wizard101 pet dance game for you using computer vision and automated input.
+The go to Bronze Medal getter and Pet Promenade game winner. A Python script that automatically plays the Wizard101 pet dance game using computer vision and automated inputs.
 
 ## Features
 
@@ -77,7 +77,7 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 
 - `-n, --number`: **(Required)** Number of games to play.
 - `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5. (not yet implemented)
-- `-s, --snack`: (Optional) Snack position to select. Defaults to no snack. (not yet implemented)
+- `-s, --snack`: (Optional) Snack position to select. Defaults to 1. (not yet implemented)
 
 ### Example
 

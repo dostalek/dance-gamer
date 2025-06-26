@@ -154,7 +154,7 @@ if __name__ == "__main__":
     sequence = []
     is_first_loop = True
 
-    # Pre-game sequence
+    # Game loop
     while True:
         if is_first_loop:
             wait_for_match_click(sct, monitor, gui_templates["wizard_city"])

@@ -82,10 +82,10 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 ### Basic Example
 
 ```bash
-python main.py -n 5
+python main.py -n 25
 ```
 
-This will play 5 full games (5 sequences matched), without feeding a snack.
+This will play 25 full games (5 sequences matched), without feeding a snack.
 
 ### Advanced Example
 

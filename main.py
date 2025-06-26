@@ -9,6 +9,8 @@ import sys
 from time import sleep
 import win32api, win32con, win32gui
 
+RESOURCES_DIR = "resources"
+
 
 def screenshot_np(sct, monitor):
     """Take a screenshot of a given monitor and return the image as a numpy array."""
@@ -87,7 +89,7 @@ def client_to_screen(x, y, monitor):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="main.py",
-        description="Python script that plays the Wizard101 dance game for you.",
+        description="Python script that plays the Wizard101 pet dance game automatically.",
     )
 
     parser.add_argument(
@@ -114,7 +116,7 @@ if __name__ == "__main__":
         "-s",
         "--snack",
         choices=range(1, 6),
-        default=1,
+        # default=1,
         dest="snack_pos",
         help="The position of the snack you wish to feed your pet.",
         metavar="[1, 5]",
@@ -141,22 +143,25 @@ if __name__ == "__main__":
     }
 
     # Load templates for matching
-    resources_dir = "resources"
     arrow_templates = {
-        "up": cv2.imread(f"{resources_dir}/arrow_up.png", cv2.IMREAD_GRAYSCALE),
-        "down": cv2.imread(f"{resources_dir}/arrow_down.png", cv2.IMREAD_GRAYSCALE),
-        "left": cv2.imread(f"{resources_dir}/arrow_left.png", cv2.IMREAD_GRAYSCALE),
-        "right": cv2.imread(f"{resources_dir}/arrow_right.png", cv2.IMREAD_GRAYSCALE),
+        "up": cv2.imread(f"{RESOURCES_DIR}/arrow_up.png", cv2.IMREAD_GRAYSCALE),
+        "down": cv2.imread(f"{RESOURCES_DIR}/arrow_down.png", cv2.IMREAD_GRAYSCALE),
+        "left": cv2.imread(f"{RESOURCES_DIR}/arrow_left.png", cv2.IMREAD_GRAYSCALE),
+        "right": cv2.imread(f"{RESOURCES_DIR}/arrow_right.png", cv2.IMREAD_GRAYSCALE),
     }
     gui_templates = {
         "wizard_city": cv2.imread(
-            f"{resources_dir}/wizard_city.png", cv2.IMREAD_GRAYSCALE
+            f"{RESOURCES_DIR}/wizard_city.png", cv2.IMREAD_GRAYSCALE
         ),
-        "play": cv2.imread(f"{resources_dir}/play.png", cv2.IMREAD_GRAYSCALE),
-        "next": cv2.imread(f"{resources_dir}/next.png", cv2.IMREAD_GRAYSCALE),
-        "feed_pet": cv2.imread(f"{resources_dir}/feed_pet.png", cv2.IMREAD_GRAYSCALE),
+        "play": cv2.imread(f"{RESOURCES_DIR}/play.png", cv2.IMREAD_GRAYSCALE),
+        "next": cv2.imread(f"{RESOURCES_DIR}/next.png", cv2.IMREAD_GRAYSCALE),
+        "feed_pet": cv2.imread(f"{RESOURCES_DIR}/feed_pet.png", cv2.IMREAD_GRAYSCALE),
         "play_again": cv2.imread(
-            f"{resources_dir}/play_again.png", cv2.IMREAD_GRAYSCALE
+            f"{RESOURCES_DIR}/play_again.png", cv2.IMREAD_GRAYSCALE
+        ),
+        "finish": cv2.imread(f"{RESOURCES_DIR}/finish.png", cv2.IMREAD_GRAYSCALE),
+        "dance_game": cv2.imread(
+            f"{RESOURCES_DIR}/dance_game.png", cv2.IMREAD_GRAYSCALE
         ),
     }
 
@@ -224,15 +229,20 @@ if __name__ == "__main__":
                     callback=lambda: pyautogui.press("up"),
                 )
 
-                # 1 index the list for user input
-                snack_x, snack_y = snack_positions[args.snack_pos - 1]
-                click(snack_x, snack_y, 0.1)
+                # 1 index list for user input
+                snack_pos = args.snack_pos
+                if snack_pos:
+                    snack_x, snack_y = snack_positions[args.snack_pos - 1]
+                    click(snack_x, snack_y, 0.1)
+                    wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
+                    wait_for_match_click(sct, monitor, gui_templates["play_again"])
+                else:
+                    # Not feeding pet requires dance game menu be reopened with "X"
+                    wait_for_match_click(sct, monitor, gui_templates["finish"])
+                    wait_for_match(sct, monitor, gui_templates["dance_game"])
+                    pyautogui.press("x")
 
-                # TODO: paths diverge here, needs separate functionality if user does not want to feed pet
-                wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
                 # TODO: handle case where pet levels up
-                wait_for_match_click(sct, monitor, gui_templates["play_again"])
-
                 games_played += 1
                 if games_played == args.number_games:
                     # Desired number of games played reached

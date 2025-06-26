@@ -40,8 +40,10 @@ def click(x, y, delay=0):
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
 
-def wait_for_match(sct, monitor, template, confidence=0.8, timeout_seconds=15):
-    """Blocks until a match between image and template at confidence is found, and returns its center. Timeout after 15 seconds by default."""
+def wait_for_match(
+    sct, monitor, template, confidence=0.8, timeout_seconds=15, callback=None
+):
+    """Blocks until a match between image and template at confidence is found, and returns its center. Timeout after 15 seconds by default. Optional callback to be called while waiting."""
     # Slight delay so CPU doesn't explode
     delay = 0.1
     num_checks = timeout_seconds / delay
@@ -57,6 +59,9 @@ def wait_for_match(sct, monitor, template, confidence=0.8, timeout_seconds=15):
             center_x = w // 2 + x
             center_y = h // 2 + y
             return center_x, center_y
+        # Do something while waiting
+        if callback:
+            callback()
         sleep(delay)
         num_checks -= 1
         if num_checks <= 0:
@@ -65,9 +70,11 @@ def wait_for_match(sct, monitor, template, confidence=0.8, timeout_seconds=15):
             sys.exit(1)
 
 
-def wait_for_match_click(sct, monitor, template, confidence=0.8, timeout_seconds=15):
-    """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default."""
-    x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds)
+def wait_for_match_click(
+    sct, monitor, template, confidence=0.8, timeout_seconds=15, callback=None
+):
+    """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default. Optional callback to be called while waiting."""
+    x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds, callback)
     screen_x, screen_y = client_to_screen(x, y, monitor)
     click(screen_x, screen_y, 0.2)
 
@@ -83,16 +90,37 @@ if __name__ == "__main__":
         description="Python script that plays the Wizard101 dance game for you.",
     )
 
-    parser.add_argument("-n", "--number", dest="number_games", type=int, required=True)
     parser.add_argument(
-        "-t", "--truncate", default=5, dest="truncate_sequences", type=int
+        "-n",
+        "--number",
+        choices=range(1, 100),
+        dest="number_games",
+        help="The number of games to be played.",
+        metavar="[1, 99]",
+        required=True,
+        type=int,
     )
-    parser.add_argument("-s", "--snack", default=1, dest="snack_pos", type=int)
+    parser.add_argument(
+        "-t",
+        "--truncate",
+        default=5,
+        choices=range(2, 6),
+        dest="truncate_sequences",
+        help="The number of sequences before the game is ended.",
+        metavar="[2, 5]",
+        type=int,
+    )
+    parser.add_argument(
+        "-s",
+        "--snack",
+        choices=range(1, 6),
+        default=1,
+        dest="snack_pos",
+        help="The position of the snack you wish to feed your pet.",
+        metavar="[1, 5]",
+        type=int,
+    )
 
-    # TODO: add further arg validation
-    #  number_games >= 1
-    #  1 <= snack_pos <= 5
-    #  2 <= truncate_sequences <= 4
     args = parser.parse_args()
 
     # Handle display scale
@@ -149,8 +177,8 @@ if __name__ == "__main__":
     # Screenshotter instance, to be passed to screenshot function
     sct = mss.mss()
     # Game state variables
-    current_sequence_len = 3
     games_played = 0
+    current_sequence_len = 3
     sequence = []
     is_first_loop = True
 
@@ -187,7 +215,14 @@ if __name__ == "__main__":
                 current_sequence_len = 3
                 is_first_loop = True
 
-                wait_for_match_click(sct, monitor, gui_templates["next"])
+                # Callback function here spams up arrow until "Next" button is visible
+                wait_for_match_click(
+                    sct,
+                    monitor,
+                    gui_templates["next"],
+                    timeout_seconds=30,
+                    callback=lambda: pyautogui.press("up"),
+                )
 
                 # 1 index the list for user input
                 snack_x, snack_y = snack_positions[args.snack_pos - 1]

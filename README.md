@@ -1,4 +1,4 @@
-# Wizard101 Auto Pet Dance Game (WIP)
+# Wizard101 Pet Dance Game Bot (WIP)
 
 The go to Bronze Medal getter and Pet Promenade game winner. A Python script that automatically plays the Wizard101 pet dance game using computer vision and automated inputs.
 

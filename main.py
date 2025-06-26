@@ -193,8 +193,8 @@ if __name__ == "__main__":
                 snack_x, snack_y = snack_positions[args.snack_pos - 1]
                 click(snack_x, snack_y, 0.1)
 
-                wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
                 # TODO: paths diverge here, needs separate functionality if user does not want to feed pet
+                wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
                 # TODO: handle case where pet levels up
                 wait_for_match_click(sct, monitor, gui_templates["play_again"])
 

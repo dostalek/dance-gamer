@@ -9,8 +9,6 @@ import sys
 from time import sleep
 import win32api, win32con, win32gui
 
-SNACK_POS = 1 - 1
-
 
 def screenshot_np(sct, monitor):
     """Take a screenshot of a given monitor and return the image as a numpy array."""

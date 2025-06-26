@@ -75,9 +75,9 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 
 ### Arguments
 
-- `-n, --number`: **(Required)** Number of games to play.
+- `-n, --number`: **(Required)** Number of games to play (1-99).
 - `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5.
-- `-s, --snack`: (Optional) Snack position to select (1-5). Defaults to 1. (not yet implemented, maybe will implement a "-1" option to select the player's lowest rank snack)
+- `-s, --snack`: (Optional) Snack position to select (1-5). Defaults to no snack.
 
 ### Example
 

@@ -102,6 +102,6 @@ The `resources/` directory contains template images used for computer vision:
 - Arrow templates (up, down, left, right)
 - GUI element templates (buttons)
 
-## Disclaimer :warning:
+## Disclaimer
 
 Obligatory "this is against Wizard101's ToS, and you could be banned for it, but probably not."

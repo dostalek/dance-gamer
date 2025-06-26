@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 1. Download the repository as a ZIP file by clicking [here](https://github.com/dostalek/dance-gamer/archive/refs/heads/main.zip).
 2. Extract the contents of the ZIP file to a location of your choice.
-3. Open a command prompt or terminal and navigate to the extracted folder. It should be named dance-gamer-main.
+3. Open a command prompt or terminal and navigate to the extracted folder. It should be named dance-gamer-main:
 
 ```bash
 cd path/to/your/dance-gamer-main
@@ -91,9 +91,8 @@ This will play 5 games, stop matching after 2 sequences, and select the snack at
 
 1. **Screen Capture**: Takes screenshots of the Wizard101 client area
 2. **Template Matching**: Uses OpenCV to detect arrow sequences and GUI elements
-3. **Sequence Detection**: Identifies the arrow sequence shown by the game
-4. **Input Simulation**: Replicates the sequence using keyboard input
-5. **Game Navigation**: Automatically navigates menus and feeds pets after each game
+3. **Input Simulation**: Replicates the sequence using keyboard input
+4. **Game Navigation**: Automatically navigates menus and feeds pets after each game
 
 ## Resources
 

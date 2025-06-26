@@ -1,4 +1,4 @@
-# Wizard101 Pet Dance Game Bot (WIP)
+# Wizard101 Pet Dance Game Bot
 
 The go to Bronze Medal getter and Pet Promenade game winner. A Python script that automatically plays the Wizard101 pet dance game using computer vision and automated inputs.
 
@@ -65,7 +65,7 @@ pip install -r requirements.txt
    - entering the dance game sigil
    - selecting the dance game level
 2. Avoid keyboard and mouse inputs during runtime
-3. Press the "[" key to exit the program at any time (not yet implemented)
+3. Press the "[" key to exit the program at any time
 
 ## Usage
 
@@ -77,7 +77,7 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 
 - `-n, --number`: **(Required)** Number of games to play (1-99).
 - `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5.
-- `-s, --snack`: (Optional) Snack position to select (1-5). Defaults to no snack.
+- `-s, --snack`: (Optional) Snack position to select (1-5), with 1 being the first snack on the left, and 5 being the last snack on the right of the first snacks page. Defaults to no snack.
 
 ### Example
 
@@ -103,4 +103,4 @@ The `resources/` directory contains template images used for computer vision:
 
 ## Disclaimer
 
-Obligatory "this is against Wizard101's ToS, and you could be banned for it, but probably not."
+Obligatory "this is against Wizard101 ToS, and you could be banned for it, but probably not."

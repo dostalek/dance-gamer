@@ -79,13 +79,21 @@ python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
 - `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5.
 - `-s, --snack`: (Optional) Snack position to select (1-5), with 1 being the first snack on the left, and 5 being the last snack on the right of the first snacks page. Defaults to no snack.
 
-### Example
+### Basic Example
+
+```bash
+python main.py -n 5
+```
+
+This will play 5 full games (5 sequences matched), without feeding a snack.
+
+### Advanced Example
 
 ```bash
 python main.py -n 5 -t 2 -s 1
 ```
 
-This will play 5 games, stop matching after 2 sequences, and select the snack at position 1.
+This will play 5 games, stop matching after 2 sequences, and feed the snack at position 1.
 
 ## How It Works
 

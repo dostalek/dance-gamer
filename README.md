@@ -1,0 +1,91 @@
+# Wizard101 Pet Dance Gamer (WIP)
+
+A Python script that plays the Wizard101 pet dance game for you using computer vision and automated input.
+
+## Features
+
+- Uses computer vision to detect arrow sequences and navigate the game interface
+- Plays multiple games in a row with configurable parameters
+- Feeds pets with selected snack after each game
+
+## Requirements
+
+- Python 3.x
+- Windows OS
+
+## Installation
+
+### Standard Installation (with Git)
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/dostalek/dance-gamer.git
+```
+
+2. Navigate into the project directory:
+
+```bash
+cd dance-gamer
+```
+
+3. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Alternate Installation (without Git)
+
+1. Download the repository as a ZIP file by clicking [here](https://github.com/dostalek/dance-gamer/archive/refs/heads/main.zip).
+2. Extract the contents of the ZIP file to a location of your choice.
+3. Open a command prompt or terminal and navigate to the extracted folder. It should be named dance-gamer-main.
+
+```bash
+cd path/to/your/dance-gamer-main
+```
+
+4. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+```bash
+python main.py -n <number_games> [-t <truncate_sequences>] [-s <snack_position>]
+```
+
+### Arguments
+
+- `-n, --number`: **(Required)** Number of games to play.
+- `-t, --truncate`: (Optional) Number of sequences before ending the game (2-5). Defaults to 5.
+- `-s, --snack`: (Optional) Snack position to select. Defaults to no snack.
+
+### Example
+
+```bash
+python main.py -n 5 -t 2 -s 1
+```
+
+This will play 5 games, stop matching after 2 sequences, and select the snack at position 1.
+
+## How It Works
+
+1. **Screen Capture**: Takes screenshots of the Wizard101 client area
+2. **Template Matching**: Uses OpenCV to detect arrow sequences and GUI elements
+3. **Sequence Detection**: Identifies the arrow sequence shown by the game
+4. **Input Simulation**: Replicates the sequence using keyboard input
+5. **Game Navigation**: Automatically navigates menus and feeds pets after each game
+
+## Resources
+
+The `resources/` directory contains template images used for computer vision:
+
+- Arrow templates (up, down, left, right)
+- GUI element templates (buttons)
+
+## :warning: Disclaimer
+
+- Obligatory "this is against Wizard101's ToS, and you could be banned for it, but probably not."

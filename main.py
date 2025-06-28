@@ -1,19 +1,26 @@
 import argparse
-import cv2
-from ctypes import windll
-import keyboard
-import mss
-import numpy as np
 import os
-from PIL import Image
-import pyautogui
 import sys
 import threading
-from time import sleep
-import win32api, win32con, win32gui
+import time
+from ctypes import windll
+
+import cv2
+import keyboard
+import mss
+import win32api
+import win32gui
+
+import screencapture
+from models import Match
+from utils import click, client_to_screen, tap
 
 RESOURCES_DIR = "resources"
 EXIT_KEY = "["
+START_SEQ_LEN = 3
+# Delay after cursor position is set, and before GUI button is clicked. I've found that
+# 0.3 seconds works best.
+GUI_CLICK_DELAY = 0.3
 
 
 def listener():
@@ -22,102 +29,27 @@ def listener():
     os._exit(0)
 
 
-def screenshot_np(sct, monitor):
-    """Take a screenshot of a given monitor and return the image as a numpy array."""
-    sct_img = sct.grab(monitor)
-    img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-    img_gray = img.convert("L")
-
-    return np.array(img_gray)
-
-
-def match_templates(img, templates, confidence=0.8):
-    """Match image with dictionary of templates and return key of first match above confidence."""
-    for template_name, template_img in templates.items():
-        res = cv2.matchTemplate(img, template_img, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, _ = cv2.minMaxLoc(res)
-        if max_val >= confidence:
-            return template_name
-    return None
+def click_match_callback(match: Match):
+    """Clicks the center of a Match."""
+    center_x, center_y = client_to_screen(
+        match["center"][0], match["center"][1], monitor
+    )
+    click(center_x, center_y, GUI_CLICK_DELAY)
 
 
-def click(x, y, delay=0):
-    """Click a given point with optional delay after setting cursor position."""
-    # pyautogui is really finicky about clicking GUI buttons, so I've opted to
-    # use the win32api here
-    win32api.SetCursorPos((x, y))
-    sleep(delay)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
-    sleep(0.1)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+stop_event = threading.Event()
 
 
-def wait_for_match(sct, monitor, template, confidence=0.8, timeout_seconds=15):
-    """Blocks until a match between image and template at confidence is found, and returns its center. Timeout after 15 seconds by default."""
-    # Slight delay so CPU doesn't explode
-    delay = 0.1
-    num_checks = timeout_seconds / delay
-
-    while True:
-        # Requires own screenshotter within loop
-        img_np = screenshot_np(sct, monitor)
-        res = cv2.matchTemplate(img_np, template, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, max_loc = cv2.minMaxLoc(res)
-        if max_val > confidence:
-            x, y = max_loc
-            w, h = template.shape[::-1]
-            center_x = w // 2 + x
-            center_y = h // 2 + y
-            return center_x, center_y
-        sleep(delay)
-        num_checks -= 1
-        if num_checks <= 0:
-            # Match timeout reached
-            # print("Error navigating GUI. Exitting program.")
-            # sys.exit(1)
-            pass
+def hold_with_stop(key: str):
+    """Hold a key until stop_event is set."""
+    while not stop_event.is_set():
+        keyboard.press_and_release(key)
+        time.sleep(0.1)
 
 
-def wait_for_match_click(sct, monitor, template, confidence=0.8, timeout_seconds=15):
-    """Blocks until a match between image and template at confidence is found, and clicks its center. Timeout after 15 seconds by default."""
-    x, y = wait_for_match(sct, monitor, template, confidence, timeout_seconds)
-    screen_x, screen_y = client_to_screen(x, y, monitor)
-    click(screen_x, screen_y, 0.3)
-
-
-def wait_for_matches_click(
-    sct, monitor, templates, confidence=0.8, timeout_seconds=15, callback=None
-):
-    """Blocks until a match is found between image and one of the provided templates, clicks it, and returns the template name of the match."""
-    delay = 0.1
-    num_checks = timeout_seconds / delay
-
-    while True:
-        for template_name, template_img in templates.items():
-            img_np = screenshot_np(sct, monitor)
-            res = cv2.matchTemplate(img_np, template_img, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, max_loc = cv2.minMaxLoc(res)
-            if max_val > confidence:
-                x, y = max_loc
-                w, h = template_img.shape[::-1]
-                center_x = w // 2 + x
-                center_y = h // 2 + y
-                screen_x, screen_y = client_to_screen(center_x, center_y, monitor)
-                click(screen_x, screen_y, 0.3)
-                return template_name
-        if callback:
-            callback()
-        sleep(delay)
-        if num_checks <= 0:
-            # Match timeout reached
-            # print("Error navigating GUI, exitting program.")
-            # sys.exit(1)
-            pass
-
-
-def client_to_screen(x, y, monitor):
-    """Returns given client coordinates as screen coordinaates."""
-    return x + monitor["left"], y + monitor["top"]
+def match_callback(match: Match):
+    stop_event.set()
+    click_match_callback(match)
 
 
 if __name__ == "__main__":
@@ -150,7 +82,6 @@ if __name__ == "__main__":
         "-s",
         "--snack",
         choices=range(1, 6),
-        # default=1,
         dest="snack_pos",
         help="The position of the snack you wish to feed your pet.",
         metavar="[1, 5]",
@@ -187,6 +118,9 @@ if __name__ == "__main__":
         "left": cv2.imread(f"{RESOURCES_DIR}/arrow_left.png", cv2.IMREAD_GRAYSCALE),
         "right": cv2.imread(f"{RESOURCES_DIR}/arrow_right.png", cv2.IMREAD_GRAYSCALE),
     }
+    # Convert arrow templates to an object recognizable by my matching methods
+    arrow_templates_list = list(arrow_templates.items())
+
     gui_templates = {
         "wizard_city": cv2.imread(
             f"{RESOURCES_DIR}/wizard_city.png", cv2.IMREAD_GRAYSCALE
@@ -204,6 +138,7 @@ if __name__ == "__main__":
         "ecks": cv2.imread(f"{RESOURCES_DIR}/ecks.png", cv2.IMREAD_GRAYSCALE),
     }
 
+    # Position of snacks relative to client region
     snack_position_offsets = [
         (219, 430),
         (309, 430),
@@ -222,80 +157,112 @@ if __name__ == "__main__":
     sct = mss.mss()
     # Game state variables
     games_played = 0
-    current_sequence_len = 3
-    sequence = []
+    current_sequence_len = START_SEQ_LEN
+    current_sequence: list[Match] = []
     is_first_loop = True
+
+    # Screen Capturer instance
+    scp = screencapture.ScreenCapture(monitor)
 
     # Game loop
     while True:
         if is_first_loop:
-            wait_for_match_click(sct, monitor, gui_templates["wizard_city"])
-            wait_for_match_click(sct, monitor, gui_templates["play"])
-            # Move cursor to top left corner of client so that it doesn't obfuscate GUI
-            # elements
+            # Don't care about template names here, so I left them blank for simplicty
+            scp.wait_for_match(
+                [["", gui_templates["wizard_city"]]],
+                callback=click_match_callback,
+            )
+            scp.wait_for_match(
+                [["", gui_templates["play"]]],
+                callback=click_match_callback,
+            )
+            # Move cursor to top left corner of client such that it doesn't obfuscate
+            # GUI elements
             win32api.SetCursorPos((monitor["left"], monitor["top"]))
             is_first_loop = False
 
-        # Screenshot image as numpy array
-        img_np = screenshot_np(sct, monitor)
+        img = scp.screenshot()
 
-        # The name of the template matched (or None)
-        match = match_templates(img_np, arrow_templates, 0.8)
+        matches = scp.match_templates(
+            img, arrow_templates_list, len(arrow_templates_list)
+        )
+        for match in matches:
+            if match["confidence"] >= 0.8:
+                current_sequence.append(match)
+                if len(current_sequence) == current_sequence_len:
+                    # Wait for full sequence to be displayed
+                    time.sleep(0.5)
+                    keys = [arrow["name"] for arrow in current_sequence]
+                    tap(keys)
+                    # Wait for full input to be displayed
+                    time.sleep(1)
+                    current_sequence_len += 1
+                    current_sequence.clear()
+                if current_sequence_len - START_SEQ_LEN == args.truncate_sequences:
+                    # End of game
+                    current_sequence_len = START_SEQ_LEN
+                    games_played += 1
+                    is_first_loop = True
 
-        if match:
-            sequence.append(match)
-            if len(sequence) == current_sequence_len:
-                # Single match sequence
-                current_sequence_len += 1
-                # Wait for sequence display to finish
-                sleep(0.5)
-                pyautogui.write(sequence)
-                # Wait for input display to finish
-                sleep(1)
-                sequence.clear()
-            if current_sequence_len - 3 == args.truncate_sequences:
-                # Post-game sequence
-                current_sequence_len = 3
-                is_first_loop = True
+                    # Hold up arrow, to expedite ending process, on separate thread
+                    thread = threading.Thread(target=hold_with_stop, args=("up",))
+                    thread.start()
 
-                # Callback function here spams up arrow until "Next" button is visible
-                res = wait_for_matches_click(
-                    sct,
-                    monitor,
-                    {key: gui_templates[key] for key in ["next", "ecks"]},
-                    timeout_seconds=30,
-                    callback=lambda: pyautogui.press("up"),
-                )
-
-                if res == "ecks":
-                    wait_for_match_click(
-                        sct,
-                        monitor,
-                        gui_templates["next"],
+                    # Handle case where pet levels up off of game experience alone
+                    level_match = scp.wait_for_match(
+                        [
+                            ["next", gui_templates["next"]],
+                            ["ecks", gui_templates["ecks"]],
+                        ],
+                        callback=match_callback,
                     )
-
-                snack_pos = args.snack_pos
-                if snack_pos:
-                    # 1 index list for user input
-                    snack_x, snack_y = snack_positions[args.snack_pos - 1]
-                    click(snack_x, snack_y, 0.1)
-                    wait_for_match_click(sct, monitor, gui_templates["feed_pet"])
-                    # Short check for pet level up on feed snack
-                    if res == "next":
-                        wait_for_match_click(
-                            sct, monitor, gui_templates["ecks"], timeout_seconds=1
+                    if level_match["name"] == "ecks":
+                        scp.wait_for_match(
+                            [["", gui_templates["next"]]],
+                            callback=match_callback,
                         )
-                    wait_for_match_click(sct, monitor, gui_templates["play_again"])
-                else:
-                    # Not feeding pet requires dance game menu be reopened with "X"
-                    wait_for_match_click(sct, monitor, gui_templates["finish"])
-                    wait_for_match(sct, monitor, gui_templates["dance_game"])
-                    pyautogui.press("x")
 
-                games_played += 1
-                if games_played == args.number_games:
-                    # Desired number of games played reached
-                    print("Dancing complete, exitting program.")
+                    thread.join()
+                    stop_event.clear()
+
+                    snack_pos = args.snack_pos
+                    if args.snack_pos:
+                        # Snack selected
+                        snack_pos_x, snack_pos_y = snack_positions[snack_pos - 1]
+                        click(snack_pos_x, snack_pos_y, GUI_CLICK_DELAY)
+
+                        scp.wait_for_match(
+                            [["", gui_templates["feed_pet"]]],
+                            callback=click_match_callback,
+                        )
+
+                        # Handle case where pet levels up off of snack experience
+                        level_match = scp.wait_for_match(
+                            [
+                                ["play_again", gui_templates["play_again"]],
+                                ["ecks", gui_templates["ecks"]],
+                            ],
+                            callback=match_callback,
+                        )
+                        if level_match["name"] == "ecks":
+                            scp.wait_for_match(
+                                [["", gui_templates["play_again"]]],
+                                callback=click_match_callback,
+                            )
+                    else:
+                        # No snack selected
+                        scp.wait_for_match(
+                            [["", gui_templates["finish"]]],
+                            callback=click_match_callback,
+                        )
+                        scp.wait_for_match(
+                            [["", gui_templates["dance_game"]]],
+                            callback=lambda _: tap("x"),
+                        )
+                if games_played >= args.number_games:
+                    # Desired number of games have been played, exit
+                    print("All games completed. Exitting program.")
                     sys.exit(0)
 
-            sleep(0.5)
+                # Debounce between arrow displays
+                time.sleep(0.5)

@@ -5,7 +5,7 @@ The go to Bronze Medal getter and Pet Promenade game winner. A Python script tha
 ## Features
 
 - Uses computer vision to detect arrow sequences and navigate the game interface
-- Plays multiple games in a row with configurable parameters
+- Plays multiple games with configurable parameters for number of games and pet snacks
 - Feeds pets with selected snack after each game
 
 ## Requirements

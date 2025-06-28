@@ -1,23 +1,13 @@
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable
+
 import cv2
 import mss
 import numpy as np
 from numpy.typing import NDArray
-from concurrent.futures import ThreadPoolExecutor
-import time
-from typing import TypedDict, Callable
 
-
-class Monitor(TypedDict):
-    top: int
-    left: int
-    width: int
-    height: int
-
-
-class Match(TypedDict):
-    name: str
-    confidence: float
-    center: tuple[float, float]
+from models import Match, Monitor
 
 
 class ScreenCapture:
@@ -28,9 +18,9 @@ class ScreenCapture:
         self.sct = mss.mss()
 
     def screenshot(self) -> NDArray:
-        """Capture screenshot of selected monitor region, and return as grayscale numpy array."""
+        """Capture screenshot of selected monitor region, convert to grayscale, and return as numpy array."""
         sct_img = self.sct.grab(self.monitor)
-        img = np.array(sct_img.monitor)
+        img = np.array(sct_img)
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
         return img_gray
 
@@ -38,14 +28,14 @@ class ScreenCapture:
         """Match image against template using TM_CCOEFF_NORMED."""
         template_name, template_image = template
         res = cv2.matchTemplate(img, template_image, cv2.TM_CCOEFF_NORMED)
+        # max_loc is top left of match
         _, max_val, _, max_loc = cv2.minMaxLoc(res)
-        top_left = max_loc
 
-        h, w = template.shape
+        h, w = template_image.shape
         return {
             "name": template_name,
             "confidence": max_val,
-            "center": (top_left[0] + w // 2, top_left[1] + h // 2),
+            "center": (max_loc[0] + w // 2, max_loc[1] + h // 2),
         }
 
     def match_templates(
@@ -71,13 +61,13 @@ class ScreenCapture:
         delay: float = 0.1,
         timeout: float | None = None,
         callback: Callable[[Match], None] | None = None,
-    ) -> Match | None:
+    ) -> Match:
         """Yield the current thread until a single match above confidence threshold is found."""
         start_time = time.time()
 
         while True:
             if timeout and time.time() - start_time > timeout:
-                return None
+                raise TimeoutError
 
             img = self.screenshot()
 
@@ -95,7 +85,6 @@ class ScreenCapture:
                 # a single template above the threshold within this method.
                 match = valid_matches[0]
                 if callback:
-                    # TODO: Plan to pass click method with match
                     callback(match)
                 return match
             time.sleep(delay)

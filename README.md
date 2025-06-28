@@ -10,7 +10,7 @@ The go to Bronze Medal getter and Pet Promenade game winner. A Python script tha
 
 ## Requirements
 
-- Python 3.x
+- Python 3.9
 - Windows OS
 
 ## Installation

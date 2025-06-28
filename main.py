@@ -48,6 +48,7 @@ def hold_with_stop(key: str):
 
 
 def match_callback(match: Match):
+    """Set stop_event flag and call click_match_callback."""
     stop_event.set()
     click_match_callback(match)
 
